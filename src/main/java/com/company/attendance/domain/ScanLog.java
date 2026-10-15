@@ -13,5 +13,7 @@ public class ScanLog {
     private LocalDateTime timestamp;           // device time is preserved
     @Enumerated(EnumType.STRING) private Direction direction;
     @Enumerated(EnumType.STRING) private ScanStatus status;
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean entryOnly;
     private String source;                     // ZKTECO / API / SIMULATOR
 }

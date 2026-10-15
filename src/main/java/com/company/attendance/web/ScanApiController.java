@@ -16,7 +16,9 @@ public class ScanApiController {
     /** POST /api/scans  {deviceId, employeeCode, timestamp?, direction?} */
     @PostMapping("/api/scans")
     public Map<String, Object> scan(@RequestBody ScanRequest r) {
-        ScanLog l = scans.process(r.employeeCode(), r.deviceId(), r.timestamp(), r.direction(), "API");
+        if (r.employeeCode() == null || r.employeeCode().isBlank())
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Employee code is required.");
+        ScanLog l = scans.process(r.employeeCode().trim(), r.deviceId() == null || r.deviceId().isBlank() ? "API" : r.deviceId().trim(), r.timestamp(), r.direction(), "API");
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("status", l.getStatus());
         m.put("direction", l.getDirection());

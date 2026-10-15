@@ -35,7 +35,7 @@ public class LogController {
         if (from == null) from = LocalDate.now();
         if (to == null) to = from;
         Page<ScanLog> p = logs.findAll(spec(from, to, q, department, direction),
-            PageRequest.of(page, 25, Sort.by(Sort.Direction.DESC, "timestamp")));
+            PageRequest.of(Math.max(0, page), 25, Sort.by(Sort.Direction.DESC, "timestamp")));
         m.addAttribute("page", p); m.addAttribute("from", from); m.addAttribute("to", to);
         m.addAttribute("q", q); m.addAttribute("department", department); m.addAttribute("direction", direction);
         return "logs";
@@ -72,8 +72,36 @@ public class LogController {
         send(res, "xlsx", "daily_summary_" + from + "_" + to, "Summary", SummaryService.HEADERS, summary.rows(from, to));
     }
 
+    @GetMapping("/logs/entries")
+    void entries(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+                 @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+                 @RequestParam(required = false) String q, @RequestParam(required = false) String department,
+                 Principal user, HttpServletResponse res) throws IOException {
+        if (from == null) from = LocalDate.now();
+        if (to == null) to = from;
+        Map<String, List<ScanLog>> groups = new LinkedHashMap<>();
+        for (ScanLog log : logs.findAll(spec(from, to, q, department, Direction.IN), Sort.by("timestamp"))) {
+            if (log.getStatus() != ScanStatus.OK || log.getEmployee() == null) continue;
+            String key = log.getTimestamp().toLocalDate() + ":" + log.getEmployee().getId();
+            groups.computeIfAbsent(key, ignored -> new ArrayList<>()).add(log);
+        }
+        List<List<Object>> rows = new ArrayList<>();
+        for (List<ScanLog> entries : groups.values()) {
+            ScanLog first = entries.getFirst(), last = entries.getLast();
+            Employee employee = first.getEmployee();
+            rows.add(Arrays.asList(first.getTimestamp().toLocalDate().toString(), employee.getCode(), employee.getFullName(),
+                employee.getDepartment(), first.getTimestamp().toLocalTime().toString(), last.getTimestamp().toLocalTime().toString(),
+                entries.size(), "Exit not included in this entry register"));
+        }
+        audit.log(user.getName(), "EXPORT_ENTRIES", from + " to " + to);
+        send(res, "xlsx", "entry_register_" + from + "_" + to, "Entry register",
+            List.of("Date", "Code", "Name", "Department", "First IN", "Latest IN", "Accepted entries", "Notes"), rows);
+    }
+
     private void send(HttpServletResponse res, String fmt, String name, String sheet,
                       List<String> h, List<List<Object>> rows) throws IOException {
+        if (!fmt.equalsIgnoreCase("csv") && !fmt.equalsIgnoreCase("xlsx"))
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Choose CSV or XLSX export.");
         boolean csv = fmt.equalsIgnoreCase("csv");
         res.setContentType(csv ? "text/csv" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         res.setHeader("Content-Disposition", "attachment; filename=" + name + (csv ? ".csv" : ".xlsx"));
@@ -81,6 +109,8 @@ public class LogController {
     }
 
     private Specification<ScanLog> spec(LocalDate from, LocalDate to, String q, String dept, Direction dir) {
+        if (to.isBefore(from))
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "End date must be on or after start date.");
         return (r, cq, cb) -> {
             List<Predicate> p = new ArrayList<>();
             p.add(cb.greaterThanOrEqualTo(r.<LocalDateTime>get("timestamp"), from.atStartOfDay()));

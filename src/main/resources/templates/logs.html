@@ -4,9 +4,11 @@
 <body>
 <nav th:replace="~{fragments :: nav}"></nav>
 <div class="container-fluid px-4">
+  <h4 class="mb-3">Attendance logs</h4>
+  <p th:if="${entryOnly}" class="alert alert-info">IN-only mode: use the entry register for the client report. Exit times, hours worked, and current occupancy are unavailable for unrecorded exits. Older IN/OUT records remain available.</p>
   <form class="row g-2 mb-3" method="get" action="/logs">
-    <div class="col-6 col-md-2"><input type="date" name="from" th:value="${from}" class="form-control"></div>
-    <div class="col-6 col-md-2"><input type="date" name="to" th:value="${to}" class="form-control"></div>
+    <div class="col-6 col-md-2"><input type="date" aria-label="From date" name="from" th:value="${from}" class="form-control"></div>
+    <div class="col-6 col-md-2"><input type="date" aria-label="To date" name="to" th:value="${to}" class="form-control"></div>
     <div class="col-6 col-md-3"><input name="q" th:value="${q}" class="form-control" placeholder="Name or code"></div>
     <div class="col-6 col-md-2"><input name="department" th:value="${department}" class="form-control" placeholder="Department"></div>
     <div class="col-6 col-md-1">
@@ -16,20 +18,22 @@
     <div class="col-6 col-md-2"><button class="btn btn-primary w-100">Filter</button></div>
   </form>
   <div class="mb-3 d-flex flex-wrap gap-2">
+    <a class="btn btn-success btn-sm" th:href="@{/logs/entries(from=${from},to=${to},q=${q},department=${department})}">Entry register (Excel)</a>
     <a class="btn btn-outline-success btn-sm" th:href="@{/logs/export/csv(from=${from},to=${to},q=${q},department=${department},direction=${direction})}">Export CSV</a>
     <a class="btn btn-outline-success btn-sm" th:href="@{/logs/export/xlsx(from=${from},to=${to},q=${q},department=${department},direction=${direction})}">Export Excel</a>
     <a class="btn btn-outline-primary btn-sm" th:href="@{/logs/summary(from=${from},to=${to})}">Daily summary (Excel)</a>
   </div>
-  <div class="table-responsive"><table class="table table-sm table-striped align-middle">
+  <div class="table-responsive"><table class="table table-sm table-striped align-middle attendance-logs">
     <thead><tr><th>Time</th><th>Code</th><th>Name</th><th>Department</th><th>Direction</th><th>Status</th><th>Device</th></tr></thead>
     <tbody>
+      <tr th:if="${page.empty}"><td colspan="7" class="text-muted">No scans match these filters.</td></tr>
       <tr th:each="l : ${page.content}">
         <td th:text="${#temporals.format(l.timestamp,'yyyy-MM-dd HH:mm:ss')}"></td>
         <td th:text="${l.employee != null} ? ${l.employee.code} : ${l.rawCode}"></td>
         <td th:text="${l.employee != null} ? ${l.employee.fullName} : 'UNKNOWN'"></td>
         <td th:text="${l.employee != null} ? ${l.employee.department} : ''"></td>
-        <td><span th:if="${l.direction != null}" th:text="${l.direction}" th:class="'badge text-bg-' + (${l.direction.name() == 'IN'} ? 'success' : 'warning')"></span></td>
-        <td><span th:text="${l.status}" th:class="'badge text-bg-' + (${l.status.name() == 'OK'} ? 'secondary' : 'danger')"></span></td>
+        <td><span th:if="${l.direction != null}" th:text="${l.direction}" th:title="${l.direction}" th:class="'badge text-bg-' + (${l.direction.name() == 'IN'} ? 'success' : 'warning')"></span></td>
+        <td><span th:text="${l.status}" th:title="${l.status}" th:class="'badge text-bg-' + (${l.status.name() == 'OK'} ? 'secondary' : 'danger')"></span></td>
         <td th:text="${l.deviceId}"></td>
       </tr>
     </tbody></table></div>
@@ -42,4 +46,15 @@
     </div>
   </div>
 </div>
+<script>
+const filters = document.querySelector('form[action="/logs"]');
+const from = filters.elements.from, to = filters.elements.to;
+function validateDates() {
+  to.min = from.value;
+  to.setCustomValidity(from.value && to.value && to.value < from.value ? 'End date must be on or after start date.' : '');
+}
+from.addEventListener('change', validateDates);
+to.addEventListener('change', validateDates);
+validateDates();
+</script>
 </body></html>

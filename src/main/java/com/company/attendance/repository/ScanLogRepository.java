@@ -13,7 +13,7 @@ public interface ScanLogRepository extends JpaRepository<ScanLog, Long>, JpaSpec
     List<ScanLog> findByStatusAndTimestampBetweenOrderByTimestamp(ScanStatus s, LocalDateTime a, LocalDateTime b);
 
     /** Employees whose latest accepted scan is IN = currently inside. */
-    @Query("select l from ScanLog l where l.status = :ok and l.direction = :in and l.timestamp = "
+    @Query("select l from ScanLog l where l.status = :ok and l.entryOnly = false and l.direction = :in and l.timestamp = "
          + "(select max(x.timestamp) from ScanLog x where x.employee = l.employee and x.status = :ok) order by l.timestamp desc")
     List<ScanLog> inside(@Param("ok") ScanStatus ok, @Param("in") Direction in);
 }

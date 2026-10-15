@@ -15,6 +15,7 @@ spring:
   servlet:
     multipart:
       max-file-size: 5MB
+      max-request-size: 6MB
 attendance:
   data-dir: ${user.home}/AttendanceApp   # Windows installer sets C:/ProgramData/AttendanceApp
   debounce-seconds: 10                   # ignore repeat scans within N seconds

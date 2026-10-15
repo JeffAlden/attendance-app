@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Settings')}"></head>
+<body>
+<nav th:replace="~{fragments :: nav}"></nav>
+<main class="container-fluid px-4 pb-4">
+  <h4 class="mb-3">Settings</h4>
+  <div th:if="${success}" class="alert alert-success" role="status" th:text="${success}"></div>
+  <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+  <form class="card p-3 mb-4" th:action="@{/settings}" method="post">
+    <h5>Attendance operation</h5>
+    <label class="form-label" for="attendance-mode">Recording mode</label>
+    <select id="attendance-mode" name="entryOnly" class="form-select mb-2">
+      <option value="false" th:selected="${!settings.entryOnly}">IN and OUT — track entry and exit</option>
+      <option value="true" th:selected="${settings.entryOnly}">IN only — free exit using pushbutton</option>
+    </select>
+    <p class="text-muted">IN only records every accepted scan as an entry, even if a reader requests OUT. It disables automatic OUT toggling and anti-passback. The dashboard shows today's entrants; physical occupancy and hours worked cannot be determined without exit scans. Earlier scan history is preserved.</p>
+    <div class="row g-3 mb-3">
+      <div class="col-md-4"><label class="form-label" for="duplicate-delay">Duplicate scan delay (seconds)</label><input id="duplicate-delay" class="form-control" name="debounceSeconds" type="number" min="0" max="3600" th:value="${settings.debounceSeconds}" required></div>
+      <div class="col-md-8 d-flex align-items-end"><label class="form-check mb-2"><input class="form-check-input" type="checkbox" name="antiPassback" value="true" th:checked="${settings.antiPassback}"> <span class="form-check-label">Block a second IN until an OUT (IN/OUT mode only)</span></label></div>
+    </div>
+    <h5>Fingerprint reader connection</h5>
+    <p class="text-muted">ZKTeco ADMS / Push: the reader sends attendance to this app. Reader IP and port are saved as connection reference details; this app does not initiate an SDK connection or change the reader's network configuration.</p>
+    <div class="row g-3 mb-3">
+      <div class="col-md-6"><label for="reader-name" class="form-label">Reader name</label><input id="reader-name" class="form-control" name="readerName" maxlength="255" th:value="${settings.readerName}" required></div>
+      <div class="col-md-4"><label for="reader-host" class="form-label">Reader IP / hostname</label><input id="reader-host" class="form-control" name="readerHost" placeholder="192.168.1.201" th:value="${settings.readerHost}"></div>
+      <div class="col-md-2"><label for="reader-port" class="form-label">Reader port (reference)</label><input id="reader-port" class="form-control" name="readerPort" type="number" min="1" max="65535" th:value="${settings.readerPort}" required></div>
+      <div class="col-md-6"><label for="reader-serial" class="form-label">Reader serial number</label><input id="reader-serial" class="form-control" name="serialNumber" maxlength="100" th:value="${settings.serialNumber}"><small class="text-muted">Enter the serial reported by the reader to apply its direction below.</small></div>
+      <div class="col-md-6"><label for="reader-direction" class="form-label">Reader direction (IN/OUT mode)</label><select id="reader-direction" name="direction" class="form-select"><option value="AUTO" th:selected="${settings.direction == 'AUTO'}">Auto — alternate IN / OUT</option><option value="IN" th:selected="${settings.direction == 'IN'}">Entry reader — IN</option><option value="OUT" th:selected="${settings.direction == 'OUT'}">Exit reader — OUT</option></select></div>
+    </div>
+    <div><button class="btn btn-primary">Save settings</button></div>
+  </form>
+  <section class="card p-3 mb-4">
+    <h5>Connect the physical reader</h5>
+    <ol class="mb-2"><li>Give this PC a fixed LAN IP address.</li><li>On the reader, open its ADMS / Cloud Server settings and set Server Address to this PC's LAN IP (not localhost).</li><li>Set Server Port to <strong th:text="${serverPort}"></strong>, and allow that TCP port through the PC's firewall. Saving reader details above does not change this app's listening port.</li><li>Enroll employees on the physical reader using the Device User ID from Employees. Scans are received at <code>/iclock/cdata</code>.</li></ol>
+    <p class="mb-0" th:if="${settings.lastSeen == null}">No reader contact has been received yet. Saving settings does not confirm a connection.</p>
+    <p class="mb-0" th:if="${settings.lastSeen != null}">Last reader contact: <strong th:text="${settings.lastSeenSerial}"></strong> at <span th:text="${#temporals.format(settings.lastSeen, 'yyyy-MM-dd HH:mm:ss')}"></span>. This is the last received contact, not a live online status.</p>
+  </section>
+  <section class="card p-3">
+    <h5>Fingerprint enrollment <span class="badge text-bg-warning">Demo only</span></h5>
+    <p class="text-muted">Simulates an enrollment record for demonstration. No biometric data is collected, matched, or uploaded. Real fingerprint enrollment must be completed on the physical reader.</p>
+    <form class="row g-3 align-items-end mb-3" th:action="@{/settings/enrollment}" method="post">
+      <div class="col-md-6"><label for="enroll-employee" class="form-label">Employee</label><select id="enroll-employee" class="form-select" name="employeeId" required><option value="">Select employee</option><option th:each="e : ${employees}" th:if="${e.active}" th:value="${e.id}" th:text="${e.code + ' — ' + e.fullName + ' (PIN ' + e.biometricId + ')'}"></option></select></div>
+      <div class="col-md-3"><label for="enroll-finger" class="form-label">Finger</label><select id="enroll-finger" name="finger" class="form-select"><option value="RIGHT_INDEX">Right index</option><option value="LEFT_INDEX">Left index</option><option value="RIGHT_THUMB">Right thumb</option><option value="LEFT_THUMB">Left thumb</option></select></div>
+      <div class="col-md-3"><button class="btn btn-outline-primary">Simulate enrollment</button></div>
+    </form>
+    <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Employee</th><th>Demo finger</th><th>Enrolled at</th><th></th></tr></thead><tbody>
+      <tr th:each="e : ${employees}" th:if="${e.dummyEnrolledAt != null}"><td th:text="${e.fullName}"></td><td th:text="${e.dummyFinger}"></td><td th:text="${#temporals.format(e.dummyEnrolledAt, 'yyyy-MM-dd HH:mm:ss')}"></td><td><form th:action="@{/settings/enrollment/{id}/clear(id=${e.id})}" method="post"><button class="btn btn-sm btn-outline-secondary">Clear demo</button></form></td></tr>
+    </tbody></table></div>
+  </section>
+</main>
+</body></html>

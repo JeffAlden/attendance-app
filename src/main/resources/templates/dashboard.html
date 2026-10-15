@@ -4,16 +4,17 @@
 <body>
 <nav th:replace="~{fragments :: nav}"></nav>
 <div class="container-fluid px-4">
+  <div id="entry-only-notice" class="alert alert-info" th:hidden="${!entryOnly}">IN-only mode: exits use a pushbutton and are not recorded. This list shows today's entrants, not current occupancy. <a href="/logs/entries">Download entry register (Excel)</a></div>
   <div class="row g-3 mb-3">
-    <div class="col-6 col-md-3"><div class="card text-bg-primary"><div class="card-body"><div class="small">Currently inside</div><div class="fs-1" id="c-inside">0</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card text-bg-primary"><div class="card-body"><div class="small" id="occupancy-label" th:text="${entryOnly} ? 'Employees entered today' : 'Currently inside'">Currently inside</div><div class="fs-1" id="c-inside">0</div></div></div></div>
     <div class="col-6 col-md-3"><div class="card text-bg-success"><div class="card-body"><div class="small">Total IN today</div><div class="fs-1" id="c-totalIn">0</div></div></div></div>
-    <div class="col-6 col-md-3"><div class="card text-bg-warning"><div class="card-body"><div class="small">Total OUT today</div><div class="fs-1" id="c-totalOut">0</div></div></div></div>
+    <div id="out-card" class="col-6 col-md-3" th:hidden="${entryOnly}"><div class="card text-bg-warning"><div class="card-body"><div class="small">Total OUT today</div><div class="fs-1" id="c-totalOut">0</div></div></div></div>
     <div class="col-6 col-md-3"><div class="card text-bg-danger"><div class="card-body"><div class="small">Denied today</div><div class="fs-1" id="c-denied">0</div></div></div></div>
   </div>
   <div class="row g-3">
     <div class="col-lg-7"><h5>Live feed</h5><div id="feed" class="list-group"></div></div>
-    <div class="col-lg-5"><h5>Who is inside</h5><div id="inside" class="list-group"></div></div>
+    <div class="col-lg-5"><h5 id="inside-heading" th:text="${entryOnly} ? 'Employees entered today' : 'Who is inside'">Who is inside</h5><div id="inside" class="list-group"></div></div>
   </div>
 </div>
-<script src="/js/dashboard.js"></script>
+<script src="/js/dashboard.js?v=centered-scan-time-5"></script>
 </body></html>

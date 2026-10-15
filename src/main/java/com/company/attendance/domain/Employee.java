@@ -12,4 +12,6 @@ public class Employee {
     private String biometricId;   // the User ID / PIN enrolled on the ZKTeco device
     @ManyToOne private Shift shift;
     private boolean active = true;
+    private java.time.LocalDateTime dummyEnrolledAt;
+    private String dummyFinger;
 }

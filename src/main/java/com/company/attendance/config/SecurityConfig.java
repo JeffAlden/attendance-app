@@ -28,8 +28,8 @@ public class SecurityConfig implements WebMvcConfigurer {
     @Bean SecurityFilterChain chain(HttpSecurity http) throws Exception {
         http.csrf(c -> c.ignoringRequestMatchers("/iclock/**", "/api/**"))
             .authorizeHttpRequests(a -> a
-                .requestMatchers("/iclock/**", "/js/**").permitAll()   // ZKTeco readers push here (no login)
-                .requestMatchers("/employees/**", "/shifts/**", "/simulator/**", "/api/**").hasRole("ADMIN")
+                .requestMatchers("/iclock/**", "/js/**", "/css/**").permitAll()   // ZKTeco readers push here (no login)
+                .requestMatchers("/settings/**", "/employees/**", "/shifts/**", "/simulator/**", "/api/**").hasRole("ADMIN")
                 .requestMatchers("/logs/**").hasAnyRole("ADMIN", "HR")
                 .requestMatchers("/", "/dashboard/**", "/photos/**").hasAnyRole("ADMIN", "HR", "GUARD")
                 .anyRequest().authenticated())
@@ -42,6 +42,6 @@ public class SecurityConfig implements WebMvcConfigurer {
     /** Serve employee photos from the data dir. */
     @Override public void addResourceHandlers(ResourceHandlerRegistry r) {
         r.addResourceHandler("/photos/**")
-         .addResourceLocations(Path.of(props.getDataDir(), "photos").toUri().toString());
+         .addResourceLocations(Path.of(props.getDataDir(), "photos").toUri().toString().replaceAll("/?$", "/"));
     }
 }

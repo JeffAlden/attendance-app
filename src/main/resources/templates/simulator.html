@@ -3,24 +3,43 @@
 <head th:replace="~{fragments :: head('Simulator')}"></head>
 <body>
 <nav th:replace="~{fragments :: nav}"></nav>
-<div class="container" style="max-width:520px">
+<div class="container-fluid px-4" style="max-width:720px">
   <h5>Scan simulator <small class="text-muted">(testing without a reader)</small></h5>
+  <div th:if="${entryOnly}" class="alert alert-info">IN-only mode is enabled. Every accepted scan records IN; exit is by pushbutton.</div>
   <select id="emp" class="form-select mb-2">
     <option th:each="e : ${employees}" th:value="${e.code}" th:text="${e.code + ' - ' + e.fullName}"></option>
     <option value="9999">9999 - Unknown person (DENIED test)</option>
   </select>
   <div class="d-flex gap-2 mb-3">
-    <button class="btn btn-secondary" onclick="scan(null)">Auto (toggle)</button>
+    <button class="btn btn-secondary" onclick="scan(null)" th:text="${entryOnly} ? 'Scan entry' : 'Auto (toggle)'">Auto (toggle)</button>
     <button class="btn btn-success" onclick="scan('IN')">IN</button>
-    <button class="btn btn-warning" onclick="scan('OUT')">OUT</button>
+    <button class="btn btn-warning" onclick="scan('OUT')" th:disabled="${entryOnly}">OUT</button>
   </div>
+  <p class="text-muted">Temporary testing tool. Repeated scans within the duplicate delay configured in Settings are marked as duplicates. Inactive employees are denied.</p>
+  <div id="scan-message" class="alert d-none" role="status" aria-live="polite"></div>
   <pre id="out" class="border rounded p-2 small"></pre>
 </div>
 <script>
 async function scan(dir) {
-  const r = await fetch('/api/scans', {method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({deviceId: 'SIM', employeeCode: document.getElementById('emp').value, direction: dir})});
-  document.getElementById('out').textContent = JSON.stringify(await r.json(), null, 2);
+  const buttons = document.querySelectorAll('button[onclick]');
+  buttons.forEach(button => button.disabled = true);
+  const message = document.getElementById('scan-message');
+  try {
+    const response = await fetch('/api/scans', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({deviceId: 'SIM', employeeCode: document.getElementById('emp').value, direction: dir})});
+    if (!response.ok) throw new Error('Scan failed. Check your connection and sign in again if needed.');
+    const result = await response.json();
+    const duplicate = result.status === 'DUPLICATE';
+    message.className = 'alert alert-' + (result.status === 'OK' ? 'success' : duplicate ? 'warning' : 'danger');
+    message.textContent = result.status === 'OK' ? result.employee + ' signed ' + (result.direction === 'IN' ? 'in.' : 'out.')
+      : duplicate ? 'Duplicate scan. Wait for the duplicate delay configured in Settings before scanning this employee again.' : 'Access denied (' + result.status + ').';
+    document.getElementById('out').textContent = JSON.stringify(result, null, 2);
+  } catch (error) {
+    message.className = 'alert alert-danger';
+    message.textContent = error.message;
+  } finally {
+    buttons.forEach(button => button.disabled = false);
+  }
 }
 </script>
 </body></html>

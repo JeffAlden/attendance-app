@@ -4,14 +4,34 @@
 <body>
 <nav th:replace="~{fragments :: nav}"></nav>
 <div class="container-fluid px-4">
-  <form class="row g-2 mb-3" method="post" action="/shifts">
-    <div class="col-md-3"><input class="form-control" name="name" placeholder="Shift name" required></div>
-    <div class="col-md-2"><input class="form-control" type="time" name="start" required></div>
-    <div class="col-md-2"><input class="form-control" type="time" name="end" required></div>
-    <div class="col-md-2"><input class="form-control" type="number" name="grace" value="10" min="0" title="Grace minutes"></div>
-    <div class="col-md-2"><button class="btn btn-primary w-100">Add shift</button></div>
+  <h4 class="mb-3">Shifts</h4>
+  <div th:if="${success}" class="alert alert-success" role="status" th:text="${success}"></div>
+  <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+  <form class="card p-3 mb-4" method="post" th:action="@{/shifts}">
+    <h5 th:text="${shift.id == null} ? 'Add shift' : 'Edit shift'"></h5>
+    <input type="hidden" name="id" th:value="${shift.id}">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-3"><label for="shift-name" class="form-label">Shift name</label><input id="shift-name" class="form-control" name="name" th:value="${shift.name}" maxlength="255" required></div>
+      <div class="col-md-2"><label for="shift-start" class="form-label">Start</label><input id="shift-start" class="form-control" type="time" name="start" th:value="${submittedStart != null ? submittedStart : shift.startTime}" required></div>
+      <div class="col-md-2"><label for="shift-end" class="form-label">End</label><input id="shift-end" class="form-control" type="time" name="end" th:value="${submittedEnd != null ? submittedEnd : shift.endTime}" required></div>
+      <div class="col-md-2"><label for="shift-grace" class="form-label">Grace (minutes)</label><input id="shift-grace" class="form-control" type="number" name="grace" th:value="${submittedGrace != null ? submittedGrace : shift.graceMinutes}" min="0" max="1440" required></div>
+      <div class="col-md-3 d-flex gap-2"><button class="btn btn-primary" th:text="${shift.id == null} ? 'Add shift' : 'Save changes'"></button><a th:if="${shift.id != null}" href="/shifts" class="btn btn-outline-secondary">Cancel</a></div>
+    </div>
+    <small class="text-muted mt-2">If the end time is earlier than the start, the shift ends the following day.</small>
   </form>
-  <table class="table table-sm"><thead><tr><th>Name</th><th>Start</th><th>End</th><th>Grace (min)</th></tr></thead>
-    <tbody><tr th:each="s : ${shifts}"><td th:text="${s.name}"></td><td th:text="${s.startTime}"></td><td th:text="${s.endTime}"></td><td th:text="${s.graceMinutes}"></td></tr></tbody></table>
+  <div class="table-responsive"><table class="table table-sm align-middle">
+    <thead><tr><th>Name</th><th>Start</th><th>End</th><th>Grace (min)</th><th>Actions</th></tr></thead>
+    <tbody>
+      <tr th:if="${#lists.isEmpty(shifts)}"><td colspan="5" class="text-muted">No shifts yet. Add your first shift above.</td></tr>
+      <tr th:each="s : ${shifts}">
+        <td th:text="${s.name}"></td><td th:text="${s.startTime}"></td><td><span th:text="${s.endTime}"></span> <small class="text-muted" th:if="${s.endTime.isBefore(s.startTime)}">next day</small></td><td th:text="${s.graceMinutes}"></td>
+        <td><a class="btn btn-sm btn-outline-secondary" th:href="@{/shifts(edit=${s.id})}">Edit</a>
+          <form class="d-inline" method="post" th:action="@{/shifts/{id}/delete(id=${s.id})}">
+            <button class="btn btn-sm btn-outline-danger" th:disabled="${#lists.contains(assignedShiftIds, s.id)}" th:title="${#lists.contains(assignedShiftIds, s.id)} ? 'Reassign employees before deleting' : 'Delete unused shift'">Delete</button>
+          </form>
+        </td>
+      </tr>
+    </tbody>
+  </table></div>
 </div>
 </body></html>
