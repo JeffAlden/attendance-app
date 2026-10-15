@@ -23,8 +23,8 @@ async function load() {
   const d = await response.json();
   document.getElementById('entry-only-notice').hidden = !d.entryOnly;
   document.getElementById('out-card').hidden = d.entryOnly;
-  document.getElementById('occupancy-label').textContent = d.entryOnly ? 'Employees entered today' : 'Currently inside';
-  document.getElementById('inside-heading').textContent = d.entryOnly ? 'Employees entered today' : 'Who is inside';
+  document.getElementById('occupancy-label').textContent = d.entryOnly ? 'Employees entered today' : 'On-site';
+  document.getElementById('inside-heading').textContent = d.entryOnly ? 'Employees entered today' : 'On-site personnel';
   ['inside', 'totalIn', 'totalOut', 'denied'].forEach(k => document.getElementById('c-' + k).textContent = d[k]);
   const feed = document.getElementById('feed');
   const existing = new Map(Array.from(feed.children, node => [node.dataset.scanKey, node]));
