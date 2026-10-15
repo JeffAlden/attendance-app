@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Shifts')}"></head>
+<body>
+<nav th:replace="~{fragments :: nav}"></nav>
+<div class="container-fluid px-4">
+  <form class="row g-2 mb-3" method="post" action="/shifts">
+    <div class="col-md-3"><input class="form-control" name="name" placeholder="Shift name" required></div>
+    <div class="col-md-2"><input class="form-control" type="time" name="start" required></div>
+    <div class="col-md-2"><input class="form-control" type="time" name="end" required></div>
+    <div class="col-md-2"><input class="form-control" type="number" name="grace" value="10" min="0" title="Grace minutes"></div>
+    <div class="col-md-2"><button class="btn btn-primary w-100">Add shift</button></div>
+  </form>
+  <table class="table table-sm"><thead><tr><th>Name</th><th>Start</th><th>End</th><th>Grace (min)</th></tr></thead>
+    <tbody><tr th:each="s : ${shifts}"><td th:text="${s.name}"></td><td th:text="${s.startTime}"></td><td th:text="${s.endTime}"></td><td th:text="${s.graceMinutes}"></td></tr></tbody></table>
+</div>
+</body></html>

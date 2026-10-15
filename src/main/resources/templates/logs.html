@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Logs')}"></head>
+<body>
+<nav th:replace="~{fragments :: nav}"></nav>
+<div class="container-fluid px-4">
+  <form class="row g-2 mb-3" method="get" action="/logs">
+    <div class="col-6 col-md-2"><input type="date" name="from" th:value="${from}" class="form-control"></div>
+    <div class="col-6 col-md-2"><input type="date" name="to" th:value="${to}" class="form-control"></div>
+    <div class="col-6 col-md-3"><input name="q" th:value="${q}" class="form-control" placeholder="Name or code"></div>
+    <div class="col-6 col-md-2"><input name="department" th:value="${department}" class="form-control" placeholder="Department"></div>
+    <div class="col-6 col-md-1">
+      <select name="direction" class="form-select"><option value="">All</option>
+        <option value="IN" th:selected="${direction != null and direction.name() == 'IN'}">IN</option>
+        <option value="OUT" th:selected="${direction != null and direction.name() == 'OUT'}">OUT</option></select></div>
+    <div class="col-6 col-md-2"><button class="btn btn-primary w-100">Filter</button></div>
+  </form>
+  <div class="mb-3 d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-success btn-sm" th:href="@{/logs/export/csv(from=${from},to=${to},q=${q},department=${department},direction=${direction})}">Export CSV</a>
+    <a class="btn btn-outline-success btn-sm" th:href="@{/logs/export/xlsx(from=${from},to=${to},q=${q},department=${department},direction=${direction})}">Export Excel</a>
+    <a class="btn btn-outline-primary btn-sm" th:href="@{/logs/summary(from=${from},to=${to})}">Daily summary (Excel)</a>
+  </div>
+  <div class="table-responsive"><table class="table table-sm table-striped align-middle">
+    <thead><tr><th>Time</th><th>Code</th><th>Name</th><th>Department</th><th>Direction</th><th>Status</th><th>Device</th></tr></thead>
+    <tbody>
+      <tr th:each="l : ${page.content}">
+        <td th:text="${#temporals.format(l.timestamp,'yyyy-MM-dd HH:mm:ss')}"></td>
+        <td th:text="${l.employee != null} ? ${l.employee.code} : ${l.rawCode}"></td>
+        <td th:text="${l.employee != null} ? ${l.employee.fullName} : 'UNKNOWN'"></td>
+        <td th:text="${l.employee != null} ? ${l.employee.department} : ''"></td>
+        <td><span th:if="${l.direction != null}" th:text="${l.direction}" th:class="'badge text-bg-' + (${l.direction.name() == 'IN'} ? 'success' : 'warning')"></span></td>
+        <td><span th:text="${l.status}" th:class="'badge text-bg-' + (${l.status.name() == 'OK'} ? 'secondary' : 'danger')"></span></td>
+        <td th:text="${l.deviceId}"></td>
+      </tr>
+    </tbody></table></div>
+  <div class="d-flex justify-content-between align-items-center">
+    <span th:text="${page.totalElements} + ' records'"></span>
+    <div>
+      <a class="btn btn-sm btn-outline-secondary" th:if="${page.hasPrevious()}" th:href="@{/logs(from=${from},to=${to},q=${q},department=${department},direction=${direction},page=${page.number - 1})}">Prev</a>
+      <span class="mx-2" th:text="'Page ' + ${page.number + 1} + ' / ' + ${page.totalPages == 0 ? 1 : page.totalPages}"></span>
+      <a class="btn btn-sm btn-outline-secondary" th:if="${page.hasNext()}" th:href="@{/logs(from=${from},to=${to},q=${q},department=${department},direction=${direction},page=${page.number + 1})}">Next</a>
+    </div>
+  </div>
+</div>
+</body></html>

@@ -1,0 +1,28 @@
+server:
+  port: 8080
+spring:
+  datasource:
+    # Default: H2 file DB stored in the data dir. For PostgreSQL swap these three lines:
+    # url: jdbc:postgresql://localhost:5432/attendance
+    # username: postgres
+    # password: secret
+    url: jdbc:h2:file:${attendance.data-dir}/db/attendance;AUTO_SERVER=TRUE
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+  servlet:
+    multipart:
+      max-file-size: 5MB
+attendance:
+  data-dir: ${user.home}/AttendanceApp   # Windows installer sets C:/ProgramData/AttendanceApp
+  debounce-seconds: 10                   # ignore repeat scans within N seconds
+  anti-passback: false                   # block IN when already inside
+  timezone: ""                           # e.g. Asia/Manila (blank = Windows time zone)
+  # Fixed direction per reader serial number (one reader at entry, one at exit). Others toggle IN/OUT.
+  device-directions: {}
+    # Example (remove the {} when you add entries):
+    # device-directions:
+    #   ABC1234567890: IN
+    #   ABC1234567891: OUT

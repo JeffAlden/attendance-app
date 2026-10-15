@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Dashboard')}"></head>
+<body>
+<nav th:replace="~{fragments :: nav}"></nav>
+<div class="container-fluid px-4">
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-md-3"><div class="card text-bg-primary"><div class="card-body"><div class="small">Currently inside</div><div class="fs-1" id="c-inside">0</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card text-bg-success"><div class="card-body"><div class="small">Total IN today</div><div class="fs-1" id="c-totalIn">0</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card text-bg-warning"><div class="card-body"><div class="small">Total OUT today</div><div class="fs-1" id="c-totalOut">0</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card text-bg-danger"><div class="card-body"><div class="small">Denied today</div><div class="fs-1" id="c-denied">0</div></div></div></div>
+  </div>
+  <div class="row g-3">
+    <div class="col-lg-7"><h5>Live feed</h5><div id="feed" class="list-group"></div></div>
+    <div class="col-lg-5"><h5>Who is inside</h5><div id="inside" class="list-group"></div></div>
+  </div>
+</div>
+<script src="/js/dashboard.js"></script>
+</body></html>

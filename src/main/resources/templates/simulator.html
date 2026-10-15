@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Simulator')}"></head>
+<body>
+<nav th:replace="~{fragments :: nav}"></nav>
+<div class="container" style="max-width:520px">
+  <h5>Scan simulator <small class="text-muted">(testing without a reader)</small></h5>
+  <select id="emp" class="form-select mb-2">
+    <option th:each="e : ${employees}" th:value="${e.code}" th:text="${e.code + ' - ' + e.fullName}"></option>
+    <option value="9999">9999 - Unknown person (DENIED test)</option>
+  </select>
+  <div class="d-flex gap-2 mb-3">
+    <button class="btn btn-secondary" onclick="scan(null)">Auto (toggle)</button>
+    <button class="btn btn-success" onclick="scan('IN')">IN</button>
+    <button class="btn btn-warning" onclick="scan('OUT')">OUT</button>
+  </div>
+  <pre id="out" class="border rounded p-2 small"></pre>
+</div>
+<script>
+async function scan(dir) {
+  const r = await fetch('/api/scans', {method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({deviceId: 'SIM', employeeCode: document.getElementById('emp').value, direction: dir})});
+  document.getElementById('out').textContent = JSON.stringify(await r.json(), null, 2);
+}
+</script>
+</body></html>

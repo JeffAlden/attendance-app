@@ -1,0 +1,21 @@
+# Maven build output
+/target/
+
+# Runtime data and logs
+/data/
+*.mv.db
+*.trace.db
+*.log
+
+# Packaged installer output
+/dist/
+
+# IDE and operating system files
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+.DS_Store
+Thumbs.db

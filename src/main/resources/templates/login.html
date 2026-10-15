@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Login')}"></head>
+<body class="d-flex align-items-center" style="min-height:100vh">
+<form th:action="@{/login}" method="post" class="card p-4 mx-auto" style="width:340px">
+  <h4 class="mb-3">Attendance Login</h4>
+  <div class="alert alert-danger py-2" th:if="${param.error}">Invalid username or password</div>
+  <input name="username" class="form-control mb-2" placeholder="Username" autofocus required>
+  <input name="password" type="password" class="form-control mb-3" placeholder="Password" required>
+  <button class="btn btn-primary">Sign in</button>
+</form>
+</body></html>
