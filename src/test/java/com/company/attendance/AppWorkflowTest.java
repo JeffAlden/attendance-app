@@ -35,6 +35,23 @@ class AppWorkflowTest {
     @Autowired DashboardService dashboard;
     @Autowired ReaderSettingsService readerSettings;
 
+    @Test void pushReplayAndModeSelection() throws Exception {
+        employee("REPLAY1", null);
+        long before = scanLogs.count();
+        String body = "REPLAY1\t2026-10-16 08:00:00\t0\t1";
+        var logs = mvc.perform(post("/iclock/cdata").param("SN", "REPLAY").param("table", "ATTLOG")
+            .contentType("text/plain").content(body)).andExpect(status().isOk());
+        mvc.perform(post("/iclock/cdata").param("SN", "REPLAY").param("table", "ATTLOG")
+            .contentType("text/plain").content(body)).andExpect(status().isOk());
+        assertThat(scanLogs.count()).isEqualTo(before + 1);
+        ReaderSettings config = readerSettings.current();
+        config.setConnectionMode("PULL"); config.setReaderHost("127.0.0.1");
+        readerSettings.save(config);
+        mvc.perform(get("/settings")).andExpect(status().isOk());
+        mvc.perform(get("/iclock/cdata").param("SN", "REPLAY")).andExpect(status().isConflict());
+    }
+    @Autowired ScanLogRepository scanLogs;
+
     @Test void allTabsRenderAndFormsIncludeCsrf() throws Exception {
         for (String path : List.of("/dashboard", "/employees", "/shifts", "/logs", "/settings", "/simulator"))
             mvc.perform(get(path)).andExpect(status().isOk());

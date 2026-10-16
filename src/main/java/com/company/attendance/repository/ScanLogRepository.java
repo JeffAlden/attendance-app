@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 public interface ScanLogRepository extends JpaRepository<ScanLog, Long>, JpaSpecificationExecutor<ScanLog> {
+    boolean existsByDeviceIdAndRawCodeAndTimestamp(String deviceId, String rawCode, LocalDateTime timestamp);
     Optional<ScanLog> findFirstByEmployeeAndStatusOrderByTimestampDesc(Employee e, ScanStatus s);
     List<ScanLog> findTop20ByOrderByTimestampDesc();
     long countByDirectionAndStatusAndTimestampBetween(Direction d, ScanStatus s, LocalDateTime a, LocalDateTime b);

@@ -11,8 +11,8 @@
     <h5>Attendance operation</h5>
     <label class="form-label" for="attendance-mode">Recording mode</label>
     <select id="attendance-mode" name="entryOnly" class="form-select mb-2">
-      <option value="false" th:selected="${!settings.entryOnly}">IN and OUT — track entry and exit</option>
-      <option value="true" th:selected="${settings.entryOnly}">IN only — free exit using pushbutton</option>
+      <option value="false" th:selected="${!settings.entryOnly}">IN and OUT â€” track entry and exit</option>
+      <option value="true" th:selected="${settings.entryOnly}">IN only â€” free exit using pushbutton</option>
     </select>
     <p class="text-muted">IN only records every accepted scan as an entry, even if a reader requests OUT. It disables automatic OUT toggling and anti-passback. The dashboard shows today's entrants; physical occupancy and hours worked cannot be determined without exit scans. Earlier scan history is preserved.</p>
     <div class="row g-3 mb-3">
@@ -20,19 +20,35 @@
       <div class="col-md-8 d-flex align-items-end"><label class="form-check mb-2"><input class="form-check-input" type="checkbox" name="antiPassback" value="true" th:checked="${settings.antiPassback}"> <span class="form-check-label">Block a second IN until an OUT (IN/OUT mode only)</span></label></div>
     </div>
     <h5>Fingerprint reader connection</h5>
-    <p class="text-muted">ZKTeco ADMS / Push: the reader sends attendance to this app. Reader IP and port are saved as connection reference details; this app does not initiate an SDK connection or change the reader's network configuration.</p>
+    <div class="row g-3 mb-3">
+<div class="col-md-6"><label for="connection-mode">Connection approach</label><select id="connection-mode" name="connectionMode" class="form-select"><option value="PUSH" th:selected="${settings.connectionMode == 'PUSH'}">Push / ADMS (recommended for web apps)</option><option value="PULL" th:selected="${settings.connectionMode == 'PULL'}">Pull / LAN (direct TCP socket)</option></select></div>
+<div class="col-md-6"><label for="deployment-mode">Deployment</label><select id="deployment-mode" name="deploymentMode" class="form-select"><option value="ON_PREMISE" th:selected="${settings.deploymentMode == 'ON_PREMISE'}">On premise</option><option value="ONLINE" th:selected="${settings.deploymentMode == 'ONLINE'}">Online / cloud</option></select></div>
+<div class="col-md-8"><label for="server-url">App server base URL</label><input id="server-url" name="serverUrl" type="url" class="form-control" maxlength="255" placeholder="https://attendance.example.com" th:value="${settings.serverUrl}"><small>Setup reference; does not configure hosting or TLS.</small></div>
+<div class="col-md-4"><label for="poll-seconds">Pull interval (seconds)</label><input id="poll-seconds" name="pollSeconds" type="number" min="15" max="86400" class="form-control" th:value="${settings.pollSeconds}" required></div>
+</div>
+<p>Pull connects to the reader's TCP port. Push receives HTTP requests from the reader. Only the selected approach is active.</p>
     <div class="row g-3 mb-3">
       <div class="col-md-6"><label for="reader-name" class="form-label">Reader name</label><input id="reader-name" class="form-control" name="readerName" maxlength="255" th:value="${settings.readerName}" required></div>
       <div class="col-md-4"><label for="reader-host" class="form-label">Reader IP / hostname</label><input id="reader-host" class="form-control" name="readerHost" placeholder="192.168.1.201" th:value="${settings.readerHost}"></div>
-      <div class="col-md-2"><label for="reader-port" class="form-label">Reader port (reference)</label><input id="reader-port" class="form-control" name="readerPort" type="number" min="1" max="65535" th:value="${settings.readerPort}" required></div>
+      <div class="col-md-2"><label for="reader-port" class="form-label">Reader TCP port (Pull)</label><input id="reader-port" class="form-control" name="readerPort" type="number" min="1" max="65535" th:value="${settings.readerPort}" required></div>
       <div class="col-md-6"><label for="reader-serial" class="form-label">Reader serial number</label><input id="reader-serial" class="form-control" name="serialNumber" maxlength="100" th:value="${settings.serialNumber}"><small class="text-muted">Enter the serial reported by the reader to apply its direction below.</small></div>
-      <div class="col-md-6"><label for="reader-direction" class="form-label">Reader direction (IN/OUT mode)</label><select id="reader-direction" name="direction" class="form-select"><option value="AUTO" th:selected="${settings.direction == 'AUTO'}">Auto — alternate IN / OUT</option><option value="IN" th:selected="${settings.direction == 'IN'}">Entry reader — IN</option><option value="OUT" th:selected="${settings.direction == 'OUT'}">Exit reader — OUT</option></select></div>
+      <div class="col-md-6"><label for="reader-direction" class="form-label">Reader direction (IN/OUT mode)</label><select id="reader-direction" name="direction" class="form-select"><option value="AUTO" th:selected="${settings.direction == 'AUTO'}">Auto â€” alternate IN / OUT</option><option value="IN" th:selected="${settings.direction == 'IN'}">Entry reader â€” IN</option><option value="OUT" th:selected="${settings.direction == 'OUT'}">Exit reader â€” OUT</option></select></div>
     </div>
     <div><button class="btn btn-primary">Save settings</button></div>
   </form>
   <section class="card p-3 mb-4">
     <h5>Connect the physical reader</h5>
-    <ol class="mb-2"><li>Give this PC a fixed LAN IP address.</li><li>On the reader, open its ADMS / Cloud Server settings and set Server Address to this PC's LAN IP (not localhost).</li><li>Set Server Port to <strong th:text="${serverPort}"></strong>, and allow that TCP port through the PC's firewall. Saving reader details above does not change this app's listening port.</li><li>Enroll employees on the physical reader using the Device User ID from Employees. Scans are received at <code>/iclock/cdata</code>.</li></ol>
+    <div th:if="${settings.connectionMode == 'PUSH'}">
+<ol><li>On premise: use this server's fixed LAN IP. Online: configure your public domain and reverse proxy.</li><li>On the terminal, open ADMS / Cloud Server settings. Enter the server hostname and HTTP/HTTPS port from your app URL. Enable HTTPS only when supported by the reader.</li><li>Allow the reader to reach the server. This app's internal port is <strong th:text="${serverPort}"></strong>.</li><li>Enroll users on the terminal using their employee Device User ID. Set the serial above to accept only that reader.</li></ol>
+<p th:if="${!#strings.isEmpty(settings.serverUrl)}">Attendance endpoint: <code th:text="${settings.serverUrl + '/iclock/cdata'}"></code></p>
+<p>For online deployment configure TLS at your proxy and restrict device traffic using a firewall or VPN. Serial matching is not authentication. Attendance and contact/status requests are supported; user/template synchronization is not implemented.</p>
+</div>
+<div th:if="${settings.connectionMode == 'PULL'}">
+<ol><li>Give the reader a fixed LAN IP and enable TCP communication, usually port 4370.</li><li>Run this app on the same LAN, or provide a private VPN route from the online server to the reader.</li><li>Save the reader IP, port and interval. Automatic polling starts within 5 seconds; use Sync now for a manual download.</li><li>Enroll users on the terminal using their employee Device User ID. Downloaded logs stay on the terminal; repeated downloads skip stored punches.</li></ol>
+<p>Supports ZK TCP 40-byte attendance records with communication key 0. Unsupported firmware or protected readers report an error. Validate compatibility on your physical reader before production use.</p>
+<p role="status" th:text="${pullStatus}"></p>
+<form th:action="@{/settings/pull}" method="post"><button class="btn btn-outline-primary mb-3">Sync now</button></form>
+</div>
     <p class="mb-0" th:if="${settings.lastSeen == null}">No reader contact has been received yet. Saving settings does not confirm a connection.</p>
     <p class="mb-0" th:if="${settings.lastSeen != null}">Last reader contact: <strong th:text="${settings.lastSeenSerial}"></strong> at <span th:text="${#temporals.format(settings.lastSeen, 'yyyy-MM-dd HH:mm:ss')}"></span>. This is the last received contact, not a live online status.</p>
   </section>
@@ -40,7 +56,7 @@
     <h5>Fingerprint enrollment <span class="badge text-bg-warning">Demo only</span></h5>
     <p class="text-muted">Simulates an enrollment record for demonstration. No biometric data is collected, matched, or uploaded. Real fingerprint enrollment must be completed on the physical reader.</p>
     <form class="row g-3 align-items-end mb-3" th:action="@{/settings/enrollment}" method="post">
-      <div class="col-md-6"><label for="enroll-employee" class="form-label">Employee</label><select id="enroll-employee" class="form-select" name="employeeId" required><option value="">Select employee</option><option th:each="e : ${employees}" th:if="${e.active}" th:value="${e.id}" th:text="${e.code + ' — ' + e.fullName + ' (PIN ' + e.biometricId + ')'}"></option></select></div>
+      <div class="col-md-6"><label for="enroll-employee" class="form-label">Employee</label><select id="enroll-employee" class="form-select" name="employeeId" required><option value="">Select employee</option><option th:each="e : ${employees}" th:if="${e.active}" th:value="${e.id}" th:text="${e.code + ' â€” ' + e.fullName + ' (PIN ' + e.biometricId + ')'}"></option></select></div>
       <div class="col-md-3"><label for="enroll-finger" class="form-label">Finger</label><select id="enroll-finger" name="finger" class="form-select"><option value="RIGHT_INDEX">Right index</option><option value="LEFT_INDEX">Left index</option><option value="RIGHT_THUMB">Right thumb</option><option value="LEFT_THUMB">Left thumb</option></select></div>
       <div class="col-md-3"><button class="btn btn-outline-primary">Simulate enrollment</button></div>
     </form>

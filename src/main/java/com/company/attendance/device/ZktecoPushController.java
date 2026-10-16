@@ -20,12 +20,22 @@ public class ZktecoPushController implements BiometricDevice {
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final ScanService scans;
     private final com.company.attendance.service.ReaderSettingsService readerSettings;
+    private final com.company.attendance.repository.ScanLogRepository logs;
+
+    private void authorize(String sn) {
+        var config = readerSettings.current();
+        if (!"PUSH".equals(config.getConnectionMode()))
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "Push mode is disabled");
+        if (!config.getSerialNumber().isBlank() && !config.getSerialNumber().equals(sn))
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Reader serial is not configured");
+    }
 
     @Override public String brand() { return "ZKTeco"; }
 
     /** Device handshake. */
     @GetMapping(value = "/cdata", produces = MediaType.TEXT_PLAIN_VALUE)
     public String handshake(@RequestParam("SN") String sn) {
+        authorize(sn);
         readerSettings.recordContact(sn);
         log.info("ZKTeco device connected: {}", sn);
         return "GET OPTION FROM: " + sn + "\nStamp=9999\nOpStamp=9999\nErrorDelay=60\nDelay=10\n"
@@ -34,9 +44,10 @@ public class ZktecoPushController implements BiometricDevice {
 
     /** Attendance records: one per line  PIN \t yyyy-MM-dd HH:mm:ss \t status \t verify ... */
     @PostMapping(value = "/cdata", produces = MediaType.TEXT_PLAIN_VALUE)
-    public String receive(@RequestParam("SN") String sn,
+    public synchronized String receive(@RequestParam("SN") String sn,
                           @RequestParam(value = "table", required = false) String table,
                           @RequestBody(required = false) String body) {
+        authorize(sn);
         readerSettings.recordContact(sn);
         int count = 0;
         if ("ATTLOG".equalsIgnoreCase(table) && body != null) {
@@ -45,9 +56,13 @@ public class ZktecoPushController implements BiometricDevice {
                 String[] p = line.trim().split("\\t");
                 if (p.length < 2) continue;
                 try {
-                    scans.process(p[0], sn, LocalDateTime.parse(p[1], FMT), fixed, "ZKTECO");
+                    var timestamp = LocalDateTime.parse(p[1], FMT);
+                    if (!logs.existsByDeviceIdAndRawCodeAndTimestamp(sn, p[0], timestamp))
+                        scans.process(p[0], sn, timestamp, fixed, "ZKTECO");
                     count++;
-                } catch (Exception ex) { log.warn("Bad ATTLOG line '{}': {}", line, ex.getMessage()); }
+                } catch (java.time.format.DateTimeParseException ex) {
+                    throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Invalid attendance timestamp");
+                }
             }
         }
         return "OK: " + count;
@@ -55,6 +70,9 @@ public class ZktecoPushController implements BiometricDevice {
 
     /** Device polls for commands - nothing to send. */
     @GetMapping(value = "/getrequest", produces = MediaType.TEXT_PLAIN_VALUE)
-    public String getRequest(@RequestParam(value = "SN", required = false) String sn) { return "OK"; }
+    public String getRequest(@RequestParam("SN") String sn) { authorize(sn); readerSettings.recordContact(sn); return "OK"; }
+
+    @PostMapping(value = "/devicecmd", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String commandResult(@RequestParam("SN") String sn) { authorize(sn); readerSettings.recordContact(sn); return "OK"; }
 
 }

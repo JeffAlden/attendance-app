@@ -20,12 +20,14 @@ public class SettingsController {
     private final EmployeeRepository employees;
     private final AuditService audit;
     private final SseService sse;
+    private final com.company.attendance.device.PullSyncService pull;
     @Value("${server.port:8080}") private int serverPort;
 
     private String render(Model model, ReaderSettings form) {
         model.addAttribute("settings", form);
         model.addAttribute("employees", employees.findAll());
         model.addAttribute("serverPort", serverPort);
+        model.addAttribute("pullStatus", pull.getStatus());
         return "settings";
     }
     @GetMapping("/settings")
@@ -42,12 +44,19 @@ public class SettingsController {
             settings.save(form);
             audit.log(user.getName(), "READER_SETTINGS", form.isEntryOnly() ? "IN_ONLY" : "IN_OUT");
             sse.broadcast();
-            flash.addFlashAttribute("success", "Settings saved. Attendance mode is effective immediately. Configure the reader's ADMS server separately using the instructions below.");
+            flash.addFlashAttribute("success", "Settings saved. Connection mode is effective immediately. Follow the physical reader setup instructions below.");
             return "redirect:/settings";
         } catch (IllegalArgumentException ex) {
             model.addAttribute("error", ex.getMessage());
             return render(model, form);
         }
+    }
+
+    @PostMapping("/settings/pull")
+    String pull(RedirectAttributes flash) {
+        try { flash.addFlashAttribute("success", "Pull completed. Imported " + pull.sync() + " new records."); }
+        catch (Exception ex) { flash.addFlashAttribute("error", "Pull failed: " + ex.getMessage()); }
+        return "redirect:/settings";
     }
 
     @PostMapping("/settings/enrollment")

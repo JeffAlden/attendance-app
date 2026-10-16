@@ -38,6 +38,26 @@ public class ReaderSettingsService {
         if (form.getSerialNumber() == null || !form.getSerialNumber().matches("[A-Za-z0-9_-]{0,100}"))
             throw new IllegalArgumentException("Reader serial may contain up to 100 letters, numbers, hyphens, or underscores.");
         ReaderSettings saved = current();
+        if (!Set.of("PUSH", "PULL").contains(form.getConnectionMode()))
+            throw new IllegalArgumentException("Choose Push or Pull connection mode.");
+        if (!Set.of("ON_PREMISE", "ONLINE").contains(form.getDeploymentMode()))
+            throw new IllegalArgumentException("Choose on-premise or online deployment.");
+        if (form.getPollSeconds() < 15 || form.getPollSeconds() > 86400)
+            throw new IllegalArgumentException("Pull interval must be between 15 and 86400 seconds.");
+        if ("PULL".equals(form.getConnectionMode()) && host.isBlank())
+            throw new IllegalArgumentException("Enter the reader IP or hostname for LAN pull.");
+        String url = form.getServerUrl() == null ? "" : form.getServerUrl().trim().replaceAll("/+$", "");
+        if (!url.isBlank()) {
+            try {
+                java.net.URI uri = java.net.URI.create(url);
+                if (!Set.of("http", "https").contains(uri.getScheme()) || uri.getHost() == null
+                    || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null
+                    || !(uri.getPath().isEmpty() || uri.getPath().equals("/")) || url.length() > 255)
+                    throw new IllegalArgumentException();
+            } catch (IllegalArgumentException ex) { throw new IllegalArgumentException("Enter a server base URL such as https://attendance.example.com (without a path)."); }
+        }
+        saved.setConnectionMode(form.getConnectionMode()); saved.setDeploymentMode(form.getDeploymentMode());
+        saved.setServerUrl(url); saved.setPollSeconds(form.getPollSeconds());
         saved.setReaderName(form.getReaderName().trim()); saved.setReaderHost(host);
         saved.setReaderPort(form.getReaderPort()); saved.setSerialNumber(form.getSerialNumber());
         saved.setDirection(form.getDirection()); saved.setEntryOnly(form.isEntryOnly());

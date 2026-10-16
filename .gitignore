@@ -10,6 +10,9 @@
 # Packaged installer output
 /dist/
 
+# Local change journal (kept on this PC, excluded from Git)
+/change-notes/
+
 # IDE and operating system files
 .idea/
 .vscode/
